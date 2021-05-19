@@ -1,6 +1,17 @@
 #!/bin/bash
 #Mounts nfs share and images system drive to it using DD
 mount backup:/mnt/$HOSTNAME /mnt
+#Get Root device
+rootdev=$(mount | grep -i "on / " | awk '{print $1}')
+echo "Root: $rootdev"
+mmc="/dev/mmcblk"
+if  [[ "$rootdev" == *"$mmc"* ]]; then
+        rdev=${rootdev%??}
+elif [[ "$rootdev" == *"/dev/sd"* ]]; then
+        rdev=${rootdev%?}
+fi
+
+#echo "Device: $rdev"
 
 if grep -qs '/mnt ' /proc/mounts; then
         FC=$(ls /mnt/ | wc -l)
@@ -21,7 +32,7 @@ if grep -qs '/mnt ' /proc/mounts; then
 
          if [[ $FREE -gt 2 ]]; then
                echo "Imaging"
-               dd if=/dev/sda of=/mnt/$HOSTNAME\_$(date '+%Y-%m-%d').img
+               dd if=$rdev of=/mnt/$HOSTNAME\_$(date '+%Y-%m-%d').img
                #echo "Subject: Imaged $HOSTNAME" | sendmail nsharp@ussharps.co.uk
          else
                echo "Less than 20% space available"
@@ -31,5 +42,4 @@ else
          echo "Subject: Failed to mount backup drive on $HOSTNAME"
 #| sendmail nsharpk@ussharps.co.uk
 fi
-umount /mnt
-
+#umount /mnt
